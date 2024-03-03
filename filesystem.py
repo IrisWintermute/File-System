@@ -706,9 +706,11 @@ def help(name_list):
 def help_text(name): 
     func_hash = {
         "out" : "out - \t\t\tmove out of current context.",
-        "in" : "in (name) - \t\tmove into context with specified name.",
-        "file" : "file (name|) (content|) - create new object in context populated with content.",
-        "folder" : " folder(type) (name|) - create new object of class type in context with specified name.",
+        "in" : "in (address) - \t\tmove into context with specified name.",
+        "cd" : "cd (address) - \t\tmove to context specified aby entered address.",
+        "file" : "file (name|) (content|) - create new file in context populated with content.",
+        "folder" : " folder (name|) - create new folder in context with specified name.",
+        "shortcut" : " shortcut (name|) (address|) - create new shortcut in context with specified destination address.",
         "exit" : "exit (augment) - \tbegin exit dialogue, exit immediately if !certain augment passed.",
         "load" : "load (name) - \t\tloads filesystem stored in file with specified name.",
         "save" : "save (name) - \t\tsaves filesystem in new file with specified name.",  
@@ -758,11 +760,11 @@ General form of command line arguments:
               read ~yellow|file14|purple
               write ~data2|data4 #text string B|text string D
 
-    cmd: \tkeyword that identifies which function to perform. Cannot be plural.
-    name: \tprefixed with ~, used to either define a new name or identify an existing name.
-    location: \tprefixed with @, defines location within filesystem to move to or act upon.
-    augment: \tprefixed with !, optional argument that alters the behavior of some functions. Cannot be plural.
-    content: \tprefixed with #, defines data to be stored within a filesystem object.
+    cmd: \tKeyword that identifies which function to perform. Cannot be plural.
+    name: \tPrefixed with ~, used to either define a new name or identify an existing name.
+    location: \tPrefixed with @, defines location within filesystem to move to or act upon. Consists of a string of object names separated by : symbols.
+    augment: \tPrefixed with !, optional argument that alters the behavior of some functions. Cannot be plural.
+    content: \tPrefixed with #, defines data to be stored within a filesystem object.
 
     Only the arguments required by the desired function need to be included in each command.
     The command argument must be the first argument, and the content argument must be the last argument.
