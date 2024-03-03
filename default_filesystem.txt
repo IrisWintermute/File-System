@@ -1,0 +1,9 @@
+file ~f1 #ggggggggggg
+file ~f2 
+folder ~fdr
+folder ~thk
+in @thk
+out
+in @fdr
+file ~f3 #god felt a tremor beneath the cascading sand
+end
