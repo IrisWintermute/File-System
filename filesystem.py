@@ -305,7 +305,7 @@ def change_directory(target_address_list_raw, augment = ''):
             # if yes, then follow target address down until final term and target object
             if target_add_max in branch_names:
                 move_in(target_address, augment = 'norec')
-                if augment != 'norec'
+                if augment != 'norec':
                     command_history.append(f"cd @{target_address_raw}")
             # if not, then print error message
             else:
