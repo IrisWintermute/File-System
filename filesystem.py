@@ -1,15 +1,15 @@
-# ------PROJECT OUTLINE------
-# Tree-based system of directories and files, accessed via a terminal-based command-line interface
-# Tree object contains File and Folder objects
-# File and Folder classes are children of Node class
-# ----CLI----
-# > [command argument] [name argument(s)] [location argument(s)] [augment argument] [content argument(s)] 
 
-import os
-import re
-import copy
+import os # to check source file exists
+import re # to sanitise user commands
+import copy # to pass objects by value
 
+# CLASS DECLARATIONS
 class Node:
+    '''
+    Basic filesystem object. Has attributes for name and type strings, 
+    and reference to object it exists in context of. Can also be 
+    queried for its address within the filesystem.
+    '''
     def __init__(self, name, context) -> None:
         self.name = name
         self.type = 'node'
@@ -18,7 +18,13 @@ class Node:
     def __str__(self):
         return self.name
 
+    # TODO: move populate() to Folder class
     def populate(self, name, type, content = '', location = '') -> None:
+        '''
+        Recieves string arguments for name, type, content (for folders) and 
+        location (for shortcuts) and generates a new object with corresponding 
+        class and attributes within the current working directory.
+        '''
         if type == 'file':
             self.branches.append(File(name, self, content))
             print(f"New file {name} created within {self.name}.")
@@ -55,21 +61,27 @@ class Node:
         return address
 
 class Folder(Node):
+    '''
+    Class for storing other objects within its context.
+    Stores references to objects as list indices witin branches attribute.
+    '''
     def __init__(self, name, context) -> None:
         Node.__init__(self, name, context)
         self.branches = []
         self.type = 'folder'
-    
+        
+    '''
+    returns list of stored object references whose names match indices in passed
+    string list argument. Will also return names of objects without matches.
+    '''
     def get_name_matches(self, name_list) -> list:
         # return list of references to objects in folder whose names are in name_list
         matches = []
-        match_count = 0
 
         for name in name_list:
             for object in self.branches:
                 if object.name == name:
                     matches.append(object)
-                    match_count += 1
                     break
 
         match_names = [obj.name for obj in matches]
@@ -80,6 +92,9 @@ class Folder(Node):
         return self.branches
 
 class File(Node):
+    '''
+    Class for storing user-defined data in string format.
+    '''
     def __init__(self, name, context, content) -> None:
         Node.__init__(self, name, context)
         self.type = 'file'
@@ -89,26 +104,33 @@ class File(Node):
         return self.content
 
 class Shortcut(Folder):
-    # A shortcut is a type of folder with a single location as its content
-    # When a shortcut is made the working directory i.e: filesystem = Shortcut()
-    # the program automatically makes the content reference contained within it the working directory
-    # modified functions implementation -> change all movement functions
+    '''
+    Child class of folder with a single location in its context.
+    When a shortcut is made the working directory, the program automatically 
+    makes the object at the stored location it the working directory.
+    '''
     def __init__(self, name, context, location) -> None:
         Folder.__init__(self, name, context)
         self.branches = [location]
         self.type = 'shortcut'
 
+# UTILITY FUNCTIONS
+
 def load_filesystem(filename = 'default_filesystem.txt'):
+    '''
+    Reads instructions from a text file and executes them to build filesystem.
+    Unless instructed otherwise, loads file in local directory with name "default_filesystem.txt".
+    '''
     # load_filesystem is called automatically when script is run as main
     global command_history
     global root_object
     global filesystem
 
-    # initialise filesystem if filesystem is empty
+    # initialise filesystem with root_object if filesystem is empty
     if not filesystem:
         filesystem = copy.copy(root_object)
 
-    # attempts to read from default_filesystem.txt
+    # attempts to read from file with name filename
     try:
         with open(filename, 'r', encoding = 'utf-8') as file:
             pass
@@ -117,7 +139,7 @@ def load_filesystem(filename = 'default_filesystem.txt'):
     except FileNotFoundError:
         print('Err: default file not found.')
 
-    # if successful, populates filesystem_tree
+    # if successful, executes instructions in file
     else:
         print(f"Loading filesystem from {filename}...")
         with open(filename, 'r', encoding = 'utf-8') as file:
@@ -130,7 +152,11 @@ def load_filesystem(filename = 'default_filesystem.txt'):
                     command_parser(file_line_san)
             print("Filesystem loaded.")
                 
-def clear_filesystem(augment):
+def clear_filesystem(augment = ''):
+    '''
+    Overwrites filesystem with fresh copy of root_object.
+    Requires user validation to execute.
+    '''
     global root_object
     global filesystem
     # skip user validation if augment passed
@@ -139,14 +165,20 @@ def clear_filesystem(augment):
         user_command = input("Calling this function will copy the default root object to the filesystem. Anything not saved will be lost. Are you sure? (Y/N) > ")
         if user_command.upper() == "Y":
             user_check = True
+        print("No action has been performed.")
         break
     if user_check:
+        print("Command accepted. Filesystem has been overwritten.")
         filesystem = copy.copy(root_object)
-
+        aug_str = f"!{augment}" if augment else ''
+        command_history.append(f"clear {aug_str}")
+        
 def save_filesystem(filename = "q"):
-    # user can either save the current filesystem under a specific name
-    # or user can tell the program to make a quicksave
-    # if no argument is passed, then file is a quicksave
+    '''
+    Writes the contents of command_history to text file with name filename.
+    If the filename argument is "q" or is unassigned, then the file is named "qsave.txt".
+    '''
+    
     if filename == 'q':
         filename = "qsave.txt"
     else:
@@ -170,11 +202,16 @@ def save_filesystem(filename = "q"):
         hist_to_write = '\n'.join(cmd_hist_copy)
         with open(filename, 'w', encoding = 'utf-8') as file:
             file.write(hist_to_write)
+        command_history.append(f"save ~{filename}")
         
 def filename_sanitizer(name):
+    '''
+    Checks that input string only contains valid characters, is of valid length, and if the filename already exists.
+    Returns valid filename, or empty string if filename is invalid.
+    '''
+    
     valid_non_alnum_chars = ["-","_"]
-    # checks that input string only contains valid characters, is of valid length, and if the filename already exists
-    # returns valid filename, or empty string if filename is invalid
+    
     if len(name) <= 1:
         print("Err: input filename is too short.")
         return ""
@@ -187,9 +224,29 @@ def filename_sanitizer(name):
 
 
 def move_in(name_list, augment = ''):
+    '''
+    Takes one or more names as argument. For each name, changes current working directory to 
+    object in context whose name matches the passed name.
+    '''
     global filesystem
     global command_history
+
     for name in name_list:
+        # since each name should only occur once in each directory
+        # matches should have a length of 1
+        matches, _ = filesystem.get_name_matches(name_list)
+        if not matches:
+            print("Err: object not found.")
+            
+        obj = matches[0]
+        # if type is valid, write new value for filesystem
+        if obj.type != 'file':
+            filesystem = obj
+            if augment != 'norec':
+                command_history.append(f"in @{name}")
+        else:
+            print("Err: file object cannot be made a working directory.")
+        '''
         # iterate through objects stored in current context
         for i, obj in enumerate(filesystem.get_branches()):
             # if name and type are valid, write new value for filesystem
@@ -200,7 +257,7 @@ def move_in(name_list, augment = ''):
                 break
         else:
             print("Err: object not found.")
-
+        '''
 def move_out(augment = ''):
     global filesystem
     global command_history
@@ -213,48 +270,52 @@ def move_out(augment = ''):
         if augment != 'norec':
             command_history.append(f"out")
 
-def change_directory(target_address_list_raw):
+def change_directory(target_address_list_raw, augment = ''):
+    '''
+    Takes one or more addresses as argument. For each address, changes current working directory to 
+    object whose address matches passed address.
+    '''
     global command_history
     global filesystem
     for target_address_raw in target_address_list_raw:
-        # convert str target_address to list
+        # convert target_address to list to get iterator of object names
         target_address = target_address_raw.split(':')
         curr_address = filesystem.get_address()
-        # print(f"target address: {target_address}")
-        # print(f"current address: {curr_address}")
-        # compare current and target address
-        # -does the maximum term of target address exist within current address?
-        # If yes, then iteratively move out of context until current object = maximum term
-        # Then follow target address in until arriving at the final term and the target object
-        # If that doesn't work, then take the length of the target address as L
-        # move out of context (L - 1) times
-        # check if maximum term of target list exists within current context
-        # If yes, then follow target address down until final term and target object
-        # If not, then print error message
-
+        # does the maximum term of target address exist within current address?
         target_add_max = target_address[0]
-        # print(f"target max address: {target_add_max}")
         target_max_loc = curr_address.count(target_add_max)
-        # print(f"target max location: {target_max_loc}")
+        
+        # if yes, then iteratively move out of context until current object = maximum term
         if target_max_loc:       
             steps_to_target_max = len(curr_address) - target_max_loc
             for i in range(steps_to_target_max):
                 move_out(augment = 'norec')
+            # then follow target address in until arriving at the final term and the target object
             target_address = target_address[1:]
             move_in(target_address)
+            
+        # otherwise, take the length of the target address as L
         else:
             target_add_len = len(target_address)
+            # move out of context (L - 1) times
             for i in range(1, target_add_len):
                 move_out(augment = 'norec')
+            # check if maximum term of target list exists within current context
             branch_names = [obj.name for obj in filesystem.get_branches()]
+            # if yes, then follow target address down until final term and target object
             if target_add_max in branch_names:
                 move_in(target_address, augment = 'norec')
-                command_history.append(f"cd @{target_address_raw}")
+                if augment != 'norec'
+                    command_history.append(f"cd @{target_address_raw}")
+            # if not, then print error message
             else:
                 change_directory([':'.join(curr_address)])
                 print("Err: unable to find target directory.")
 
 def create_file(name_list, content_list = []):
+    '''
+    Create one or more File objects in context with name and context attributes.
+    '''
     global filesystem
     global command_history
     # protect against IndexErrors caused by accessing content_list
@@ -275,6 +336,9 @@ def create_file(name_list, content_list = []):
         command_history.append(f"file ~{name} #{content}")
             
 def create_folder(name_list):
+    '''
+    Create one or more Folder objects in context with name attributes.
+    '''
     global filesystem
     global command_history
     
@@ -290,16 +354,17 @@ def create_folder(name_list):
         command_history.append(f"folder ~{name}")
 
 def create_shortcut(name_list, address_list):
+    '''
+    Create one or more Shortcut objects in context with name and address attributes.
+    '''
     global filesystem
     global command_history
     
     len_name = len(name_list)
     len_add = len(address_list)
-    # if list arguments differ in length, truncate any arguments that lack a camplement
+    # if list arguments differ in length, truncate any name arguments that lack a corresponding address
     if len_name > len_add:
         name_list = name_list[0:len_add]
-    elif len_name < len_add:
-        address_list = address_list[0:len_name]
 
     # produce list of objects in current context
     branch_names = [obj.name for obj in filesystem.get_branches()]
@@ -322,13 +387,13 @@ def validate_address(address):
     # record current address
     home_address = filesystem.get_address(True)
     # navigate to address
-    change_directory([address])
+    change_directory([address], 'norec')
     target_address = filesystem.get_address(True)
     # if target_address = address argument, then the argument is valid
     if target_address == address:
         # return reference to object at target address
         address_obj = filesystem
-        change_directory([home_address])
+        change_directory([home_address], 'norec')
         return address_obj
     return None
 
@@ -419,6 +484,12 @@ def extract_arg(tag, command) -> list:
     return out
 
 def command_parser(user_command):
+    '''
+    Parses a user string input into arguments. The arguments passed are then used to 
+    call and pass arguments to one of a set of utility functions. If no matching utility
+    function is found, then no action takes place.
+    '''
+    
     # Early escape if string is invalid
     if user_command == '':
         return None
@@ -442,11 +513,7 @@ def command_parser(user_command):
         # bracket user_command with whitespace and semicolon to indicate argument limits
         user_command = ' ' + user_command + ';'
         user_command_tags = re.findall("[~@!#]", user_command)
-        # search for matching tag
-        # use tag to extract argument
-        # remove tag and terminating character from argument
-        # plurality: pass argument as list to variables
-        # pass empty strings/lists if no argument is extracted
+        
         args['name'] = extract_arg('~', user_command)
         args['location'] = extract_arg('@', user_command)
         # only 1 augment tag can be passed in each command
@@ -504,6 +571,9 @@ def command_parser(user_command):
         print("Err: command argument not recognised.")
 
 def read_files(name_list):
+    '''
+    Print contents of File object(s) in current directory with names matching name_list indices to terminal.
+    '''
     global filesystem
     match_list, absent_names = filesystem.get_name_matches(name_list)
     # iterate through objects stored in current context
@@ -519,13 +589,18 @@ def read_files(name_list):
     
 
 def write_files(name_list, augment = 'write', content_list = []):
+    '''
+    Write content_list indices to File object(s) in current directory with names matching name_list indices.
+    '''
     global filesystem
     global command_history
-    # protect against IndexErrors caused by accessing content_list
-    len_diff = len(name_list) - len(content_list)
-    for i in range(len_diff):
-        content_list.append('')
-    # create hash for accessing content values
+    
+    len_name = len(name_list)
+    len_con = len(content_list)
+    # if list arguments differ in length, truncate any name arguments that lack corresponding content
+    if len_name > len_con:
+        name_list = name_list[0:len_con]
+        
     content_hash = {}
     for i, name in enumerate(name_list):
         content_hash[name] = content_list[i]
@@ -536,7 +611,7 @@ def write_files(name_list, augment = 'write', content_list = []):
         content = content_hash[obj.name]
         # iterate through objects in current context
         if obj.type == 'file':
-            # checks for augment. passes write as default.
+            # checks for augment. Function passes write as default.
             if augment == 'write':
                 obj.content = content
             elif augment == 'append':
@@ -549,11 +624,15 @@ def write_files(name_list, augment = 'write', content_list = []):
         
                            
 def copy_objects(name_list):
+    '''
+    Copies objects in current directory with names in name_list to clipboard.
+    '''
     global object_clipboard
     object_clipboard = []
     match_list, absent_names = filesystem.get_name_matches(name_list)
 
     for obj in match_list:
+        # appends address to object_clipboard
         object_clipboard.append(obj)
         print(f"{obj.type} {obj.name} copied to clipboard.")
         command_history.append(f"copy ~{obj.name}")
@@ -563,6 +642,9 @@ def copy_objects(name_list):
 
 
 def paste_objects():
+    '''
+    Creates copies of objects in clipboard in current working directory.
+    '''
     global object_clipboard
     global filesystem
     # proceed if clipboard is not empty
@@ -588,6 +670,9 @@ def paste_objects():
         print("Err: clipboard is empty.")
 
 def list_context():
+    '''
+    Prints information about objects in current working directory to terminal.
+    '''
     global filesystem
     branches = filesystem.get_branches()
     s_plural = 's' * (len(branches) != 1)
@@ -597,6 +682,10 @@ def list_context():
         print(f" > {obj.type} {obj.name}")
 
 def object_properties(name_list = []):
+    '''
+    Prints information about object(s) in current directory with names in name_list to terminal.
+    If no names are passed, prints information about context object.
+    '''
     global filesystem
     match_list, absent_names = filesystem.get_name_matches(name_list)
     # if no name argument passed, return properties of current filesystem object
@@ -626,13 +715,17 @@ def object_properties_print(obj):
     print("-" * 10)
 
 def delete_objects(name_list = [], augment = ''):
+    '''
+    Deletes objects in current directory with names in name_list.
+    If no names are passed, deletes context object.
+    '''
     global filesystem
     match_list, absent_names = filesystem.get_name_matches(name_list)
     if not name_list:
         # skip user validation if augment passed
         user_check = (augment == 'certain')
         while not user_check:
-            user_command = input("Calling delete without specifying a name argument will delete the current context. Do you want to continue? (Y/N) > ")
+            user_command = input("Calling delete without specifying a name argument will delete the current context object. Do you want to continue? (Y/N) > ")
             if user_command.upper() == "Y":
                 user_check = True
             break
@@ -671,6 +764,9 @@ def search_filesystem_wrapper(name_list):
             print(f"Err: no matches found for \"{name}\" within {filesystem.name}.")
 
 def search_filesystem(search_obj, name, recursive = False):
+    '''
+    Starting at search_obj, performs recursive depth-first search to locate object with name name.
+    '''
     search_results = []
     # get objects contained in current search object
     context_contents = search_obj.get_branches()
@@ -791,13 +887,18 @@ General form of command line arguments:
         print("Err: keyword not recognised.")
 
 def rename_objects(name_list, content_list = []):
-    # finds objects with names in name_list
-    # changes their names to corresponsing names in content_list
+    '''
+    Finds objects with names in name_list, changes their names to corresponsing names in content_list.
+    '''
     global filesystem
     global command_history
-    # protect against assigning an empty string as an object name
-    len_content = len(content_list)
-    name_list = name_list[0:len_content]
+    
+    len_name = len(name_list)
+    len_con = len(content_list)
+    # if list arguments differ in length, truncate any name arguments that lack corresponding content
+    if len_name > len_con:
+        name_list = name_list[0:len_con]
+    
     # combine name and content lists into hash
     name_hash = {}
     for i, name in enumerate(name_list):
@@ -838,6 +939,7 @@ if __name__ == '__main__':
         
         if not user_command_raw:
             print("Err: cannot pass an empty string as argument.")
+            continue
 
         user_command = command_sanitizer(user_command_raw)
         if not user_command:
