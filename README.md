@@ -1,3 +1,8 @@
+filesystem.py is a python script that when run, creates a sandboxed file system that can be read from and manipulated via the command line.
+After installing the project, run filesystem.py from your terminal to open the program.
+The program will attempt to load a filesystem from default_filesystem.txt in the local directory. 
+If the file cannot be found, then no filesystem will be loaded.
+
 The file system consists of a collection of mutable objects arranged in a tree hierarchy. 
 The tree of objects can be read from, written to, and edited with instructions passed through command line arguments.
 > {command argument} ~{name argument(s)} @{location argument(s)} !{augment argument} #{content argument(s)}
